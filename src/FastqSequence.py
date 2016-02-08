@@ -1,6 +1,11 @@
 # coding: utf8
+from DanaError import DanaError 
+import DnaUtils
 
 class FastqSequence:
+    READ_DIRECTION_LEFT_TO_RIGHT = 1
+    READ_DIRECTION_RIGHT_TO_LEFT = 2
+    
     def __init__(self, idInstrumentName, runId, flowcellId, flowcellLane, tileNumber, xCoordinate, yCoordinate, readDirection, readFiltered, controlBit, sequenceIndex, sequence, quality):
         self.idInstrumentName = idInstrumentName
         self.runId          = runId
@@ -9,13 +14,41 @@ class FastqSequence:
         self.tileNumber     = tileNumber
         self.xCoordinate    = xCoordinate
         self.yCoordinate    = yCoordinate
-        self.readDirection  = readDirection
         self.readFiltered   = readFiltered
-        self.controlBit     = controlBit
+        self.setControlBit(controlBit)
+        self.setReadDirection(readDirection)
         self.sequenceIndex  = sequenceIndex
         
         self.sequence       = sequence
-        self.quality        = quality
+        self.setQuality(quality)
+        
+    def setControlBit(self, value):
+        if not isinstance(value, int):
+            self.controlBit = int(value)
+        
+    def setReadDirection(self, value):
+        readDirection = FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT
+        if isinstance(value, str):
+            readDirection = int(value)
+            
+        if self.controlBit == 0:
+            if readDirection != FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT and readDirection != FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
+                raise DanaError("ReadDirection with invalid value : " + str(readDirection))
+            else:
+                self.readDirection = value
+        else:
+            self.readDirection = value
+        
+    def setQuality(self, qualityString):
+        if qualityString == None:
+            return
+        
+    def setSequence(self, value):
+        print("[setSequence] readDirection : " + str(self.readDirection))
+        if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+            self.sequence = value
+        else:
+            self.sequence = DnaUtils.complementDnaSequence(value)
         
     def __str__(self):
         string = ""
@@ -56,7 +89,7 @@ class FastqSequence:
         
         string += "readDirection"
         string += " = "
-        string += self.readDirection
+        string += str(self.readDirection)
         string += "\n"
         
         string += "readFiltered"
@@ -66,17 +99,21 @@ class FastqSequence:
         
         string += "controlBit"
         string += " = "
-        string += self.controlBit
+        string += str(self.controlBit)
         string += "\n"
         
         string += "sequenceIndex"
         string += " = "
         string += self.sequenceIndex
         string += "\n"
+        
+        string += "sequence :\n"
+        string += str(self.sequence)
+        string += "\n"
         return string
     
 def readFasqSequenceHeader(line):
-    print(line)
+    #print(line)
     s = line.split(":")
     idInstrumentName = s[0][1:]
     runId            = s[1]
