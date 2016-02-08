@@ -5,6 +5,7 @@ import DnaUtils
 class FastqSequence:
     READ_DIRECTION_LEFT_TO_RIGHT = 1
     READ_DIRECTION_RIGHT_TO_LEFT = 2
+    QUALITY_SCORE = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     
     def __init__(self, idInstrumentName, runId, flowcellId, flowcellLane, tileNumber, xCoordinate, yCoordinate, readDirection, readFiltered, controlBit, sequenceIndex, sequence, quality):
         self.idInstrumentName = idInstrumentName
@@ -35,20 +36,35 @@ class FastqSequence:
             if readDirection != FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT and readDirection != FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
                 raise DanaError("ReadDirection with invalid value : " + str(readDirection))
             else:
-                self.readDirection = value
+                self.readDirection = readDirection
         else:
-            self.readDirection = value
+            self.readDirection = readDirection
         
-    def setQuality(self, qualityString):
-        if qualityString == None:
+    def setQuality(self, value):
+        if value == None:
             return
+        if isinstance(value, str):
+            if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+                self.quality = qualityScoretoIntArray(value)
+            else:
+                reverse = value[::-1]
+                self.quality = qualityScoretoIntArray(reverse)
+        else:
+            self.quality = value
         
     def setSequence(self, value):
-        print("[setSequence] readDirection : " + str(self.readDirection))
         if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
             self.sequence = value
         else:
-            self.sequence = DnaUtils.complementDnaSequence(value)
+            self.sequence = DnaUtils.complementAndReverseDnaSequence(value)
+            
+    def applyDrasticThreshold(self, threshold):
+        try:
+            index = self.quality.index(threshold)
+            self.sequence = self.sequence[:index]
+            del self.quality[index:]
+        except ValueError:
+            return
         
     def __str__(self):
         string = ""
@@ -110,7 +126,17 @@ class FastqSequence:
         string += "sequence :\n"
         string += str(self.sequence)
         string += "\n"
+        
+        string += "quality :\n"
+        string += str(self.quality)
+        string += "\n"
         return string
+
+def qualityScoretoIntArray(value):
+    res = []
+    for l in value:
+        res.append(FastqSequence.QUALITY_SCORE.find(l))
+    return res
     
 def readFasqSequenceHeader(line):
     #print(line)

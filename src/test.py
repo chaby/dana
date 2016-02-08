@@ -16,7 +16,6 @@ def readFastQFile(fileName):
         #print(str(lineNumber) + "\t" + str(lastHeaderLineNumber) + "\t" + line)
         if line[0] == "@":
             if fastqSequence != None:
-                print(fastqSequence)
                 sequences.append(fastqSequence)
             fastqSequence = FastqSequence.readFasqSequenceHeader(line)
             lastHeaderLineNumber = lineNumber
@@ -28,6 +27,12 @@ def readFastQFile(fileName):
             fastqSequence.setQuality(line)
             
         lineNumber += 1
+    sequences.append(fastqSequence)
+    
+    for s in sequences:
+        print(s)
+        s.applyDrasticThreshold(2)
+        print(s)
     f.close()
     
 if __name__ == '__main__':

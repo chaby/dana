@@ -13,3 +13,11 @@ def complementDnaSequence(sequence):
             complement += "C"
         else:
             complement += l
+    return complement
+    
+    
+def complementAndReverseDnaSequence(sequence):
+    return complementDnaSequence(sequence)[::-1]
+
+def reverseSequence(sequence):
+    return sequence[::-1]
