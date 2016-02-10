@@ -65,7 +65,7 @@ class FastqSequence:
             if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
                 # index = self.quality.rindex(threshold)
                 index = len(self.sequence) - 1
-                while self.quality[index] <= threshold:
+                while index >=0 and self.quality[index] <= threshold:
                     index -= 1
                 index += 1
                 # print("applyDrasticThreshold index : " + str(index))
@@ -73,14 +73,25 @@ class FastqSequence:
                 del self.quality[index:]
             elif self.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
                 index = 0
-                while self.quality[index] <= threshold:
+                while index < len(self.quality) and self.quality[index] <= threshold:
                     index += 1
+                # print(self.sequence)
                 # print("applyDrasticThreshold reverse index : " + str(index))
                 self.sequence = self.sequence[index:]
+                # print(self.sequence)
                 del self.quality[:index]
                 
         except ValueError:
             return
+    
+    def getLineHeader(self):
+        return "@" + self.idInstrumentName + ":" + self.runId + ":" + self.flowcellId + ":" + self.flowcellLane + ":" + self.tileNumber + ":" + self.xCoordinate + ":" + self.yCoordinate + " " + str(self.readDirection) + ":" + self.readFiltered + ":" + str(self.controlBit) + ":" + self.sequenceIndex
+    
+    def getReverseLineHeader(self):
+        reverseReadDirection = FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT
+        if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+            reverseReadDirection = FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT
+        return "@" + self.idInstrumentName + ":" + self.runId + ":" + self.flowcellId + ":" + self.flowcellLane + ":" + self.tileNumber + ":" + self.xCoordinate + ":" + self.yCoordinate + " " + str(reverseReadDirection) + ":" + self.readFiltered + ":" + str(self.controlBit) + ":" + self.sequenceIndex
       
     def __eq__(self, other):
         if isinstance(other, FastqSequence):
@@ -168,8 +179,8 @@ def fusion(fastq1, reverseFastq):
     return fastqFusion
 
 def matchFastqSequence(fastq1, fastq2):
-    # print(fastq1.sequence)
-    # print(fastq2.sequence)
+    print(fastq1.sequence)
+    print(fastq2.sequence)
     classicFastq = fastq1
     reverseFastq = fastq2
     if fastq2.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
@@ -187,16 +198,16 @@ def matchFastqSequence(fastq1, fastq2):
         # print("resteAVerifier " + str(resteAVerifier) + " caracteres")
         # print(" ->" + classicFastq.sequence[found + 10:])
         j = numberChar
-        notMatch = False
+        match = True
         for i in range(found + numberChar, len(classicFastq.sequence)):
             # print("[" + str(i) + "] : " + classicFastq.sequence[i] + "/" + reverseFastq.sequence[j])
             if classicFastq.sequence[i] != reverseFastq.sequence[j]:
-                notMatch = True
+                match = false
                 break
             j += 1
-        if not notMatch:
+        if match:
             return fusion(classicFastq, reverseFastq)
-    
+    return None
 
 def qualityScoretoIntArray(value):
     res = []
