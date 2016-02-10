@@ -26,6 +26,8 @@ class FastqSequence:
     def setControlBit(self, value):
         if not isinstance(value, int):
             self.controlBit = int(value)
+        else:
+            self.controlBit = value
         
     def setReadDirection(self, value):
         readDirection = FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT
@@ -60,11 +62,30 @@ class FastqSequence:
             
     def applyDrasticThreshold(self, threshold):
         try:
-            index = self.quality.index(threshold)
-            self.sequence = self.sequence[:index]
-            del self.quality[index:]
+            if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+                # index = self.quality.rindex(threshold)
+                index = len(self.sequence) - 1
+                while self.quality[index] <= threshold:
+                    index -= 1
+                index += 1
+                # print("applyDrasticThreshold index : " + str(index))
+                self.sequence = self.sequence[:index]
+                del self.quality[index:]
+            elif self.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
+                index = 0
+                while self.quality[index] <= threshold:
+                    index += 1
+                # print("applyDrasticThreshold reverse index : " + str(index))
+                self.sequence = self.sequence[index:]
+                del self.quality[:index]
+                
         except ValueError:
             return
+      
+    def __eq__(self, other):
+        if isinstance(other, FastqSequence):
+            return other.tileNumber == self.tileNumber and other.xCoordinate == self.xCoordinate and other.yCoordinate == self.yCoordinate
+        return False
         
     def __str__(self):
         string = ""
@@ -131,6 +152,51 @@ class FastqSequence:
         string += str(self.quality)
         string += "\n"
         return string
+
+def fusion(fastq1, reverseFastq):
+    fastqFusion = FastqSequence(fastq1.idInstrumentName, fastq1.runId, fastq1.flowcellId, fastq1.flowcellLane, fastq1.tileNumber, fastq1.xCoordinate, fastq1.yCoordinate, fastq1.readDirection, fastq1.readFiltered, fastq1.controlBit, fastq1.sequenceIndex, None, None)
+    lastReverse10 = reverseFastq.sequence[0:10]
+    found = fastq1.sequence.rfind(lastReverse10)
+    sequence = fastq1.sequence[:found] + reverseFastq.sequence
+    
+    fastqFusion.setSequence(sequence)
+    
+    qualityList = []
+    qualityList.extend(fastq1.quality[:found])
+    qualityList.extend(reverseFastq.quality)
+    fastqFusion.setQuality(qualityList)
+    return fastqFusion
+
+def matchFastqSequence(fastq1, fastq2):
+    # print(fastq1.sequence)
+    # print(fastq2.sequence)
+    classicFastq = fastq1
+    reverseFastq = fastq2
+    if fastq2.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
+        reverseFastq = fastq2
+        classicFastq = fastq1
+    else:
+        reverseFastq = fastq1
+        classicFastq = fastq2
+    
+    numberChar = 10
+    lastReverse10 = reverseFastq.sequence[0:numberChar]
+    found = classicFastq.sequence.rfind(lastReverse10)
+    if found != -1:
+        resteAVerifier = len(classicFastq.sequence) - found - numberChar
+        # print("resteAVerifier " + str(resteAVerifier) + " caracteres")
+        # print(" ->" + classicFastq.sequence[found + 10:])
+        j = numberChar
+        notMatch = False
+        for i in range(found + numberChar, len(classicFastq.sequence)):
+            # print("[" + str(i) + "] : " + classicFastq.sequence[i] + "/" + reverseFastq.sequence[j])
+            if classicFastq.sequence[i] != reverseFastq.sequence[j]:
+                notMatch = True
+                break
+            j += 1
+        if not notMatch:
+            return fusion(classicFastq, reverseFastq)
+    
 
 def qualityScoretoIntArray(value):
     res = []
