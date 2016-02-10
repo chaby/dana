@@ -19,7 +19,10 @@ def tryToFusion(fastqSequence, reverseFileName, threshold):
             if parseFastq:
                 rFastqSequence.applyDrasticThreshold(threshold)
                 s = FastqSequence.matchFastqSequence(fastqSequence, rFastqSequence)
-                print(s)
+                if s != None:
+                    print(s)
+                else:
+                    print("Can't merge " + fastqSequence.getLineHeader() + " with " + rFastqSequence.getLineHeader())
                 parseFastq = False
                 
             if line == reverseLineHeader:
@@ -80,7 +83,7 @@ def readFastQFile(fileName, reverseFileName, threshold):
 def checkArgument():
     if len(sys.argv) -1 != 3:
         print(sys.argv[0] + " [R1.fastq] [R2.fastq] [drastic threshold]")
-        print("Exemple ")
+        print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10")
         sys.exit(1)
     
 if __name__ == '__main__':

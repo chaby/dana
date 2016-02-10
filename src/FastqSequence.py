@@ -179,8 +179,8 @@ def fusion(fastq1, reverseFastq):
     return fastqFusion
 
 def matchFastqSequence(fastq1, fastq2):
-    print(fastq1.sequence)
-    print(fastq2.sequence)
+    # print(fastq1.sequence)
+    # print(fastq2.sequence)
     classicFastq = fastq1
     reverseFastq = fastq2
     if fastq2.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
@@ -202,7 +202,7 @@ def matchFastqSequence(fastq1, fastq2):
         for i in range(found + numberChar, len(classicFastq.sequence)):
             # print("[" + str(i) + "] : " + classicFastq.sequence[i] + "/" + reverseFastq.sequence[j])
             if classicFastq.sequence[i] != reverseFastq.sequence[j]:
-                match = false
+                match = False
                 break
             j += 1
         if match:
