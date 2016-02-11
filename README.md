@@ -13,7 +13,8 @@ Considering 2 DNA fastq sequences:
   * Cut all the characters at the begining of the second sequence with a quality score lesser than the threshold.
 
 ### 1-3 Search the 10 first character of the second sequence into the first sequence
-  * if this 10 characters are found into the first sequence : try to merge the 2 sequences
+> * Search from the end to the begiging of the first sequence
+> * if this 10 characters are found into the first sequence : try to merge the 2 sequences
 
 
 
