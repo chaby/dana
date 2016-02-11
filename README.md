@@ -18,7 +18,6 @@ Considering 2 DNA fastq sequences:
 
 
 ## 2 The merge problem :
--------------------
 
 when we found 
 
