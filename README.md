@@ -27,10 +27,10 @@ Creation dana project
 
 Notes d'Abigail 11/2/2016
 Probleme de merge partiel: 
-1. choix du seuil de chevauchement minimal (m nucleotides)
-2. si chevauchement(c) inferieur a m (0<c<m), remplacer les c bases du gauche du read R par des X
-3. si c == 0, mettre 2 N sur la fin du read F et le debut du read R
-4. dans les deux cas, coller les deux bouts
+>1. choix du seuil de chevauchement minimal (m nucleotides)
+>2. si chevauchement(c) inferieur a m (0<c<m), remplacer les c bases du gauche du read R par des X
+>3. si c == 0, mettre 2 N sur la fin du read F et le debut du read R
+>4. dans les deux cas, coller les deux bouts
 
 (N et X sont pareils mais comme ca on pourra differencier entre les cas 2 et 3)
 
