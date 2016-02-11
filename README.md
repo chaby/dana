@@ -20,10 +20,6 @@ Considering 2 DNA fastq sequences:
 
 ## 2 The merge problem :
 
-when we found 
-
-Creation dana project
-
 
 Notes d'Abigail 11/2/2016
 Probleme de merge partiel: 
