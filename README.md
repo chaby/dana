@@ -41,4 +41,3 @@ ACTATAACAGACGTATTCACAGTAGGATTAAAGATCGAAAGTGGGAAAGGAGTAG
 
 Dans ce cas la, il faut jeter le sequence et faire un note dans le rapport dont tu m'as parle.
 
-
