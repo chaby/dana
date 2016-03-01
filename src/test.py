@@ -1,6 +1,7 @@
 # coding: utf8
 import FastqSequence
 import sys
+import re
 
 def tryToFusion(fastqSequence, reverseFileName, threshold):
     fastqSequence
@@ -15,7 +16,9 @@ def tryToFusion(fastqSequence, reverseFileName, threshold):
     
     for line in f:
         line = line[:-1]
-        if line[0] == "@":
+        lineNumber += 1
+        
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
             if parseFastq:
                 rFastqSequence.applyDrasticThreshold(threshold)
                 s = FastqSequence.matchFastqSequence(fastqSequence, rFastqSequence)
@@ -37,9 +40,7 @@ def tryToFusion(fastqSequence, reverseFileName, threshold):
             elif line[0] == "+":
                 lastSeparatorLineNumber = lineNumber
             elif lastSeparatorLineNumber == lineNumber - 1:
-                rFastqSequence.setQuality(line)
-        lineNumber += 1
-                
+                rFastqSequence.setQuality(line)                
             
     f.close()
 
@@ -54,7 +55,7 @@ def readFastQFile(fileName, reverseFileName, threshold):
     
     for line in f:
         line = line[:-1]
-        if line[0] == "@":
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
             if fastqSequence != None:
                 tryToFusion(fastqSequence, reverseFileName, threshold)
                 
@@ -81,6 +82,7 @@ def readFastQFile(fileName, reverseFileName, threshold):
 #def searchSequence(fastqSequence, fileName):
     
 def checkArgument():
+    
     if len(sys.argv) -1 != 3:
         print(sys.argv[0] + " [R1.fastq] [R2.fastq] [drastic threshold]")
         print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10")
