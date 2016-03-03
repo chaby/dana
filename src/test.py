@@ -1,8 +1,9 @@
 # coding: utf8
 import FastqSequence
 import sys
+import re
 
-def tryToFusion(fastqSequence, reverseFileName, threshold):
+def tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput):
     fastqSequence
     f = open(reverseFileName, "r")
     reverseLineHeader = fastqSequence.getReverseLineHeader()
@@ -15,14 +16,17 @@ def tryToFusion(fastqSequence, reverseFileName, threshold):
     
     for line in f:
         line = line[:-1]
-        if line[0] == "@":
+        lineNumber += 1
+        
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
             if parseFastq:
                 rFastqSequence.applyDrasticThreshold(threshold)
                 s = FastqSequence.matchFastqSequence(fastqSequence, rFastqSequence)
                 if s != None:
-                    print(s)
+                    seqOutput.write(s.getLineHeader() + "\n")
+                    seqOutput.write(s.sequence + "\n")
                 else:
-                    print("Can't merge " + fastqSequence.getLineHeader() + " with " + rFastqSequence.getLineHeader())
+                    log.write("Can't merge " + fastqSequence.getLineHeader() + " with " + rFastqSequence.getLineHeader() + "\n")
                 parseFastq = False
                 
             if line == reverseLineHeader:
@@ -37,14 +41,14 @@ def tryToFusion(fastqSequence, reverseFileName, threshold):
             elif line[0] == "+":
                 lastSeparatorLineNumber = lineNumber
             elif lastSeparatorLineNumber == lineNumber - 1:
-                rFastqSequence.setQuality(line)
-        lineNumber += 1
-                
+                rFastqSequence.setQuality(line)                
             
     f.close()
 
-def readFastQFile(fileName, reverseFileName, threshold):
+def readFastQFile(fileName, reverseFileName, threshold, seqOutputName, logFileName):
     f = open(fileName, "r")
+    log = open(logFileName, "w")
+    seqOutput = open(seqOutputName, "w")
     
     lineNumber = 0
     lastHeaderLineNumber    = 0
@@ -54,9 +58,9 @@ def readFastQFile(fileName, reverseFileName, threshold):
     
     for line in f:
         line = line[:-1]
-        if line[0] == "@":
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
             if fastqSequence != None:
-                tryToFusion(fastqSequence, reverseFileName, threshold)
+                tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
                 
             fastqSequence = FastqSequence.readFasqSequenceHeader(line)
             lastHeaderLineNumber = lineNumber
@@ -68,8 +72,10 @@ def readFastQFile(fileName, reverseFileName, threshold):
             fastqSequence.setQuality(line)
             
         lineNumber += 1
-    tryToFusion(fastqSequence, reverseFileName, threshold)
+    tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
     f.close()
+    log.close()
+    seqOutput.close()
     
     #for s in sequences:
     #    s.applyDrasticThreshold(threshold)
@@ -81,13 +87,14 @@ def readFastQFile(fileName, reverseFileName, threshold):
 #def searchSequence(fastqSequence, fileName):
     
 def checkArgument():
-    if len(sys.argv) -1 != 3:
-        print(sys.argv[0] + " [R1.fastq] [R2.fastq] [drastic threshold]")
+    
+    if len(sys.argv) -1 != 5:
+        print(sys.argv[0] + " [R1.fastq] [R2.fastq] [drastic threshold] [seq ouput] [log ouputFile]")
         print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10")
         sys.exit(1)
     
 if __name__ == '__main__':
     checkArgument()
-    readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
     #fastqSequence = FastqSequence.readFasqSequenceHeader("@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG")
     #print(fastqSequence)

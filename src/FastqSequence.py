@@ -1,6 +1,7 @@
 # coding: utf8
 from DanaError import DanaError 
 import DnaUtils
+import sys
 
 class FastqSequence:
     READ_DIRECTION_LEFT_TO_RIGHT = 1
@@ -200,8 +201,8 @@ def matchFastqSequence(fastq1, fastq2):
         j = numberChar
         match = True
         for i in range(found + numberChar, len(classicFastq.sequence)):
-            # print("[" + str(i) + "] : " + classicFastq.sequence[i] + "/" + reverseFastq.sequence[j])
-            if classicFastq.sequence[i] != reverseFastq.sequence[j]:
+            # print("[" + str(i)  + "/" + str(len(classicFastq.sequence))+ "] : " + "[" + str(j)  + "/" + str(len(reverseFastq.sequence))+ "] : " + classicFastq.sequence[i] + "/" + reverseFastq.sequence[j])
+            if j >= len(reverseFastq.sequence) or i > len(classicFastq.sequence) or classicFastq.sequence[i] != reverseFastq.sequence[j]:
                 match = False
                 break
             j += 1
