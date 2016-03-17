@@ -23,7 +23,7 @@ def tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput):
                 rFastqSequence.applyDrasticThreshold(threshold)
                 s = FastqSequence.matchFastqSequence(fastqSequence, rFastqSequence)
                 if s != None:
-                    seqOutput.write(s.getLineHeader() + "\n")
+                    seqOutput.write(">" + s.getLineHeader() + "\n")
                     seqOutput.write(s.sequence + "\n")
                 else:
                     log.write("Can't merge " + fastqSequence.getLineHeader() + " with " + rFastqSequence.getLineHeader() + "\n")
@@ -75,7 +75,7 @@ def readFastQFile(fileName, reverseFileName, threshold, seqOutputName, logFileNa
     tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
     f.close()
     log.close()
-    seqOutput.close()
+    seqOutput.close()   
     
     #for s in sequences:
     #    s.applyDrasticThreshold(threshold)
@@ -90,7 +90,7 @@ def checkArgument():
     
     if len(sys.argv) -1 != 5:
         print(sys.argv[0] + " [R1.fastq] [R2.fastq] [drastic threshold] [seq ouput] [log ouputFile]")
-        print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10")
+        print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10 output.fasta log.txt")
         sys.exit(1)
     
 if __name__ == '__main__':
