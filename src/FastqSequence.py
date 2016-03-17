@@ -1,11 +1,17 @@
 # coding: utf8
 from DanaError import DanaError 
 import DnaUtils
+import logging
 import sys
 
-class FastqSequence:
+class FastqSequence(object):
     READ_DIRECTION_LEFT_TO_RIGHT = 1
     READ_DIRECTION_RIGHT_TO_LEFT = 2
+    
+    TYPE_FUSION_OK = 0
+    TYPE_FUSION_NO_MATCH = 1
+    TYPE_FUSION_PARTIAL = 2
+    
     QUALITY_SCORE = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     
     def __init__(self, idInstrumentName, runId, flowcellId, flowcellLane, tileNumber, xCoordinate, yCoordinate, readDirection, readFiltered, controlBit, sequenceIndex, sequence, quality):
@@ -23,6 +29,7 @@ class FastqSequence:
         
         self.sequence       = sequence
         self.setQuality(quality)
+        self.typeFusion     = -1
         
     def setControlBit(self, value):
         if not isinstance(value, int):
@@ -165,6 +172,43 @@ class FastqSequence:
         string += "\n"
         return string
 
+def partialFusion(fastq1, reverseFastq, size):
+    fastqFusion = FastqSequence(fastq1.idInstrumentName, fastq1.runId, fastq1.flowcellId, fastq1.flowcellLane, fastq1.tileNumber, fastq1.xCoordinate, fastq1.yCoordinate, fastq1.readDirection, fastq1.readFiltered, fastq1.controlBit, fastq1.sequenceIndex, None, None)
+    #sequence = fastq1.sequence + "XXXX" + reverseFastq.sequence
+    sequence = fastq1.sequence
+    for i in range(0,size):
+        sequence += "N"
+    sequence += reverseFastq.sequence[size:]
+    fastqFusion.setSequence(sequence)
+    qualityXXXX  = []
+    for i in range(0,size):
+        qualityXXXX.append(0)
+        
+    qualityList = []
+    qualityList.extend(fastq1.quality)
+    qualityList.extend(qualityXXXX)
+    qualityList.extend(reverseFastq.quality[size:])
+    fastqFusion.setQuality(qualityList)
+    fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_PARTIAL
+    return fastqFusion
+    
+def noMatchFusion(fastq1, reverseFastq):
+    fastqFusion = FastqSequence(fastq1.idInstrumentName, fastq1.runId, fastq1.flowcellId, fastq1.flowcellLane, fastq1.tileNumber, fastq1.xCoordinate, fastq1.yCoordinate, fastq1.readDirection, fastq1.readFiltered, fastq1.controlBit, fastq1.sequenceIndex, None, None)
+    sequence = fastq1.sequence + "XXXX" + reverseFastq.sequence
+    fastqFusion.setSequence(sequence)
+    qualityXXXX  = []
+    qualityXXXX.append(0)
+    qualityXXXX.append(0)
+    qualityXXXX.append(0)
+    qualityXXXX.append(0)
+    qualityList = []
+    qualityList.extend(fastq1.quality)
+    qualityList.extend(qualityXXXX)
+    qualityList.extend(reverseFastq.quality)
+    fastqFusion.setQuality(qualityList)
+    fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_NO_MATCH
+    return fastqFusion
+
 def fusion(fastq1, reverseFastq):
     fastqFusion = FastqSequence(fastq1.idInstrumentName, fastq1.runId, fastq1.flowcellId, fastq1.flowcellLane, fastq1.tileNumber, fastq1.xCoordinate, fastq1.yCoordinate, fastq1.readDirection, fastq1.readFiltered, fastq1.controlBit, fastq1.sequenceIndex, None, None)
     lastReverse10 = reverseFastq.sequence[0:10]
@@ -177,6 +221,7 @@ def fusion(fastq1, reverseFastq):
     qualityList.extend(fastq1.quality[:found])
     qualityList.extend(reverseFastq.quality)
     fastqFusion.setQuality(qualityList)
+    fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_OK
     return fastqFusion
 
 def matchFastqSequence(fastq1, fastq2):
@@ -190,14 +235,37 @@ def matchFastqSequence(fastq1, fastq2):
     else:
         reverseFastq = fastq1
         classicFastq = fastq2
+        
+    logging.debug(classicFastq)
+    logging.debug(reverseFastq)
     
     numberChar = 10
     lastReverse10 = reverseFastq.sequence[0:numberChar]
     found = classicFastq.sequence.rfind(lastReverse10)
+    logging.debug("lastReverse10 : " + lastReverse10)
+    logging.debug("found : " + str(found))
+    if found == -1:
+        numberChar -=1
+        while (numberChar) > 4:
+            lastReverse10 = reverseFastq.sequence[0:numberChar]
+            found = classicFastq.sequence.rfind(lastReverse10)
+            logging.debug("lastReverse" + str(numberChar) + " : " + lastReverse10)
+            logging.debug("found : " + str(found))
+            if found != -1:
+                resteAVerifier = len(classicFastq.sequence) - found - numberChar
+                logging.debug("resteAVerifier " + str(resteAVerifier) + " caracteres")
+                logging.debug(" ->" + classicFastq.sequence[found + 10:])
+                return partialFusion(classicFastq, reverseFastq, numberChar)
+                break
+                
+            numberChar -=1
+            
     if found != -1:
         resteAVerifier = len(classicFastq.sequence) - found - numberChar
         # print("resteAVerifier " + str(resteAVerifier) + " caracteres")
         # print(" ->" + classicFastq.sequence[found + 10:])
+        logging.debug("resteAVerifier " + str(resteAVerifier) + " caracteres")
+        logging.debug(" ->" + classicFastq.sequence[found + 10:])
         j = numberChar
         match = True
         for i in range(found + numberChar, len(classicFastq.sequence)):
@@ -208,7 +276,8 @@ def matchFastqSequence(fastq1, fastq2):
             j += 1
         if match:
             return fusion(classicFastq, reverseFastq)
-    return None
+    logging.debug("No match")
+    return noMatchFusion(classicFastq, reverseFastq)
 
 def qualityScoretoIntArray(value):
     res = []
