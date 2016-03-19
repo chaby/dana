@@ -246,7 +246,7 @@ def matchFastqSequence(fastq1, fastq2):
     logging.debug("found : " + str(found))
     if found == -1:
         numberChar -=1
-        while (numberChar) > 4:
+        while (numberChar) > 1:
             lastReverse10 = reverseFastq.sequence[0:numberChar]
             found = classicFastq.sequence.rfind(lastReverse10)
             logging.debug("lastReverse" + str(numberChar) + " : " + lastReverse10)
