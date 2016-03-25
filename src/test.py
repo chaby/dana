@@ -2,6 +2,7 @@
 import DnaUtils
 import FastqSequence
 import logging
+import os
 import sys
 import re
 
@@ -115,9 +116,51 @@ def checkArgument():
         print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10 output.fasta log.txt")
         sys.exit(1)
     
+def checkArgumentMarker():
+    # print(DnaUtils.reverseSequence(DnaUtils.complementDnaSequence("GATATTTTAGATATTTTCCGAAGGTACCATTTAA")))
+    # sys.exit(1)
+    if len(sys.argv) -1 != 4:
+        print(sys.argv[0] + " [IUPACFile] [OligosFile] [output directory] [fasta file]")
+        print("Exemple " + sys.argv[0] + " P1-A01_GACGAT_L001_R1.fastq P1-A01_GACGAT_L001_R2.fastq 10 output.fasta log.txt")
+        sys.exit(1)
+        
+def checkArgumentMarkerReducer():
+    if len(sys.argv) -1 != 4:
+        print(sys.argv[0] + " [IUPACFile] [forward OligosFile] [reverse OligosFile] [marker file]")
+        print("Exemple : python3 src/test.py data/iupac.csv data/amorce/oligos_f.oligos data/amorce/oligos_r.oligos data/marker/P3-C06.fasta")
+        sys.exit(1)
+    
+        
 if __name__ == '__main__':
-    logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
-    checkArgument()
-    readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
-    #fastqSequence = FastqSequence.readFasqSequenceHeader("@EAS139:136:FC706VJ:2:2104:15343:197393 1:Y:18:ATCACG")
-    #print(fastqSequence)
+    
+    #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
+    #checkArgument()
+    #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
+    #print(DnaUtils.readIUPACFile(sys.argv[1]))
+    
+    iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
+    #l = []
+    #print(DnaUtils.rec_generate(sys.argv[2], 0, iupacMap, l));
+    #sys.exit(1)
+    
+    # 21/03/2016
+    #checkArgumentMarker()
+    #m = DnaUtils.readIUPACFile(sys.argv[1])
+    #mapOligos = DnaUtils.readOligosFile(sys.argv[2], m)
+    #DnaUtils.splitMarker(mapOligos, sys.argv[3], sys.argv[4])
+    
+    # 25/03/2016
+    checkArgumentMarkerReducer()
+    forwardMarkerMap = DnaUtils.readOligosFile(sys.argv[2], iupacMap)
+    reverseMarkerMap = DnaUtils.readOligosFile(sys.argv[3], iupacMap, True)
+    f,r = DnaUtils.readmarker(sys.argv[4], forwardMarkerMap, reverseMarkerMap, "olon_COI", False)
+    indexOsPath = sys.argv[4].rfind(os.sep)
+    if indexOsPath == -1:
+        indexOsPath = 0
+    else:
+        indexOsPath += 1
+    indexOfDot = sys.argv[4].rfind(".")
+    if indexOfDot == -1:
+        indexOfDot = len(sys.argv[4])
+    outputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".csv"
+    DnaUtils.mapToCsv(r, outputFileName)
