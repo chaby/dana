@@ -137,8 +137,8 @@ if __name__ == '__main__':
     #checkArgument()
     #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
     #print(DnaUtils.readIUPACFile(sys.argv[1]))
-    
-    iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
+    # s fait du sort que le code sor
+    #iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
     #l = []
     #print(DnaUtils.rec_generate(sys.argv[2], 0, iupacMap, l));
     #sys.exit(1)
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     
     # 25/03/2016
     checkArgumentMarkerReducer()
+    iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
     forwardMarkerMap = DnaUtils.readOligosFile(sys.argv[2], iupacMap)
     reverseMarkerMap = DnaUtils.readOligosFile(sys.argv[3], iupacMap, True)
     f,r = DnaUtils.readmarker(sys.argv[4], forwardMarkerMap, reverseMarkerMap, "olon_COI", False)
@@ -162,5 +163,7 @@ if __name__ == '__main__':
     indexOfDot = sys.argv[4].rfind(".")
     if indexOfDot == -1:
         indexOfDot = len(sys.argv[4])
-    outputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".csv"
-    DnaUtils.mapToCsv(r, outputFileName)
+    rOutputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".r.csv"
+    fOutputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".f.csv"
+    DnaUtils.mapToCsv(r, rOutputFileName)
+    DnaUtils.mapToCsv(f, fOutputFileName)
