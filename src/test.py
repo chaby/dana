@@ -125,12 +125,58 @@ def checkArgumentMarker():
         sys.exit(1)
         
 def checkArgumentMarkerReducer():
-    if len(sys.argv) -1 != 4:
-        print(sys.argv[0] + " [IUPACFile] [forward OligosFile] [reverse OligosFile] [marker file]")
-        print("Exemple : python3 src/test.py data/iupac.csv data/amorce/oligos_f.oligos data/amorce/oligos_r.oligos data/marker/P3-C06.fasta")
+    if len(sys.argv) -1 != 6:
+        print(sys.argv[0] + " [IUPACFile] [forward OligosFile] [reverse OligosFile] [marker directory] [marker name]")
+        print("Exemple : python3 src/test.py data/iupac.csv data/amorce/oligos_f.oligos data/amorce/oligos_r.oligos data/marker/olon_COI olon_COI")
+        for i in range(1, len(sys.argv)):
+            print("[" + str(i) + "] " + sys.argv[i])
         sys.exit(1)
     
+def mergeMap(globalmap, smallMap):
+    for k in smallMap:
+        if not k in globalmap:
+            globalmap[k] = 0
+        globalmap[k] += smallMap[k]
+
+def generatePlot():
+    checkArgumentMarkerReducer()
+    print("IUPAC File : " +  sys.argv[2])
+    iupacMap = DnaUtils.readIUPACFile(sys.argv[2])
+    print("forward MarkerMap File : " +  sys.argv[3])
+    print("reverse MarkerMap File : " +  sys.argv[4])
+    forwardMarkerMap = DnaUtils.readOligosFile(sys.argv[3], iupacMap)
+    reverseMarkerMap = DnaUtils.readOligosFile(sys.argv[4], iupacMap, True)
+   
+    rAllOutputFileName = sys.argv[6] + ".r.csv"
+    fAllOutputFileName = sys.argv[6] + ".f.csv"
+    
+    fAll = {}
+    rAll = {}
+    
+    for root, dirs, files in os.walk(sys.argv[5]):
+        for f1le in files:
+            filePath = os.path.join(sys.argv[5], f1le)
+            print("file : " + filePath)
+            f,r = DnaUtils.readmarker(filePath, forwardMarkerMap, reverseMarkerMap, sys.argv[6], False)
+            
+            mergeMap(rAll, r)
+            mergeMap(fAll, f)
+            
+            indexOsPath = filePath.rfind(os.sep)
+            if indexOsPath == -1:
+                indexOsPath = 0
+            else:
+                indexOsPath += 1
+            indexOfDot = filePath.rfind(".")
+            if indexOfDot == -1:
+                indexOfDot = len(filePath)
+            rOutputFileName = filePath[indexOsPath:indexOfDot] + ".r.csv"
+            fOutputFileName = filePath[indexOsPath:indexOfDot] + ".f.csv"
+            DnaUtils.mapToCsv(r, rOutputFileName)
+            DnaUtils.mapToCsv(f, fOutputFileName)
         
+    DnaUtils.mapToCsv(rAll, rAllOutputFileName)
+    DnaUtils.mapToCsv(fAll, fAllOutputFileName)
 if __name__ == '__main__':
     
     #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
@@ -149,21 +195,5 @@ if __name__ == '__main__':
     #mapOligos = DnaUtils.readOligosFile(sys.argv[2], m)
     #DnaUtils.splitMarker(mapOligos, sys.argv[3], sys.argv[4])
     
-    # 25/03/2016
-    checkArgumentMarkerReducer()
-    iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
-    forwardMarkerMap = DnaUtils.readOligosFile(sys.argv[2], iupacMap)
-    reverseMarkerMap = DnaUtils.readOligosFile(sys.argv[3], iupacMap, True)
-    f,r = DnaUtils.readmarker(sys.argv[4], forwardMarkerMap, reverseMarkerMap, "olon_COI", False)
-    indexOsPath = sys.argv[4].rfind(os.sep)
-    if indexOsPath == -1:
-        indexOsPath = 0
-    else:
-        indexOsPath += 1
-    indexOfDot = sys.argv[4].rfind(".")
-    if indexOfDot == -1:
-        indexOfDot = len(sys.argv[4])
-    rOutputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".r.csv"
-    fOutputFileName = sys.argv[4][indexOsPath:indexOfDot] + ".f.csv"
-    DnaUtils.mapToCsv(r, rOutputFileName)
-    DnaUtils.mapToCsv(f, fOutputFileName)
+    #04/04/2016
+    generatePlot()
