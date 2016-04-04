@@ -15,6 +15,7 @@ class FastqSequence(object):
     QUALITY_SCORE = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
     
     def __init__(self, idInstrumentName, runId, flowcellId, flowcellLane, tileNumber, xCoordinate, yCoordinate, readDirection, readFiltered, controlBit, sequenceIndex, sequence, quality):
+        self.logger = logging.getLogger(__name__)
         self.idInstrumentName = idInstrumentName
         self.runId          = runId
         self.flowcellId     = flowcellId
@@ -31,6 +32,10 @@ class FastqSequence(object):
         self.setQuality(quality)
         self.typeFusion     = -1
         
+    def test(self):
+        self.logger.debug("test debug")
+        self.logger.info("test debug")
+    
     def setControlBit(self, value):
         if not isinstance(value, int):
             self.controlBit = int(value)

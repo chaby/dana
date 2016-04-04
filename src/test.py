@@ -2,6 +2,7 @@
 import DnaUtils
 import FastqSequence
 import logging
+from logging.config import fileConfig
 import os
 import sys
 import re
@@ -140,10 +141,10 @@ def mergeMap(globalmap, smallMap):
 
 def generatePlot():
     checkArgumentMarkerReducer()
-    print("IUPAC File : " +  sys.argv[2])
+    logger.debug("IUPAC File : " +  sys.argv[2])
     iupacMap = DnaUtils.readIUPACFile(sys.argv[2])
-    print("forward MarkerMap File : " +  sys.argv[3])
-    print("reverse MarkerMap File : " +  sys.argv[4])
+    logger.debug("forward MarkerMap File : " +  sys.argv[3])
+    logger.debug("reverse MarkerMap File : " +  sys.argv[4])
     forwardMarkerMap = DnaUtils.readOligosFile(sys.argv[3], iupacMap)
     reverseMarkerMap = DnaUtils.readOligosFile(sys.argv[4], iupacMap, True)
    
@@ -156,7 +157,7 @@ def generatePlot():
     for root, dirs, files in os.walk(sys.argv[5]):
         for f1le in files:
             filePath = os.path.join(sys.argv[5], f1le)
-            print("file : " + filePath)
+            logger.debug("file : " + filePath)
             f,r = DnaUtils.readmarker(filePath, forwardMarkerMap, reverseMarkerMap, sys.argv[6], False)
             
             mergeMap(rAll, r)
@@ -178,7 +179,8 @@ def generatePlot():
     DnaUtils.mapToCsv(rAll, rAllOutputFileName)
     DnaUtils.mapToCsv(fAll, fAllOutputFileName)
 if __name__ == '__main__':
-    
+    fileConfig('src/logging_config.ini')
+    logger = logging.getLogger()
     #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
     #checkArgument()
     #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
@@ -197,3 +199,6 @@ if __name__ == '__main__':
     
     #04/04/2016
     generatePlot()
+    fastq = FastqSequence.readFasqSequenceHeader("@MISEQ3:7:000000000-MERGE3:1:1101:14204:1480 1:N:0:GTCTAC")
+    fastq.test()
+    
