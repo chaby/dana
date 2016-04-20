@@ -8,7 +8,7 @@ import sys
 import re
 
 def tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput):
-    fastqSequence
+    fastqSequence.applyDrasticThreshold(threshold)
     f = open(reverseFileName, "r")
     reverseLineHeader = fastqSequence.getReverseLineHeader()
     logging.debug("Search " + reverseLineHeader)
@@ -64,6 +64,39 @@ def tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput):
             elif lastSeparatorLineNumber == lineNumber - 1:
                 rFastqSequence.setQuality(line)                
             
+    f.close()
+
+def testQualityThreshold(fastqFileName, threshold):
+    f = open(fastqFileName, "r")
+    
+    lineNumber = 0
+    lastHeaderLineNumber    = 0
+    lastSeparatorLineNumber = 0
+    sequences  = []
+    fastqSequence = None
+    
+    for line in f:
+        line = line[:-1]
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
+            if fastqSequence != None:
+                #tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
+                avLen = len(fastqSequence.sequence)
+                fastqSequence.applyDrasticThreshold(threshold)
+                logger.debug("Avant : " + str(avLen) + " / Apres : " + str(len(fastqSequence.sequence)))
+                
+            fastqSequence = FastqSequence.readFasqSequenceHeader(line)
+            lastHeaderLineNumber = lineNumber
+            
+            logging.debug(line)
+        elif  lastHeaderLineNumber == lineNumber - 1:
+            fastqSequence.setSequence(line)
+        elif line[0] == "+":
+            lastSeparatorLineNumber = lineNumber
+        elif lastSeparatorLineNumber == lineNumber - 1:
+            fastqSequence.setQuality(line)
+            
+        lineNumber += 1
+    #tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
     f.close()
 
 def readFastQFile(fileName, reverseFileName, threshold, seqOutputName, logFileName):
@@ -178,12 +211,24 @@ def generatePlot():
         
     DnaUtils.mapToCsv(rAll, rAllOutputFileName)
     DnaUtils.mapToCsv(fAll, fAllOutputFileName)
+    
+def testApplyThreshold():
+    if len(sys.argv) -1 != 2:
+        print(sys.argv[0] + " [fastq fileName] [threshold]")
+        print("Exemple : python3 " + sys.argv[0] + " data/P1-A01_GACGAT_L001_R1.fastq 10")
+        for i in range(1, len(sys.argv)):
+            print("[" + str(i) + "] " + sys.argv[i])
+        sys.exit(1)
+    testQualityThreshold(sys.argv[1], int(sys.argv[2]))
+    
 if __name__ == '__main__':
     fileConfig('src/logging_config.ini')
     logger = logging.getLogger()
+    #testApplyThreshold()
+    
     #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
-    #checkArgument()
-    #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
+    checkArgument()
+    readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
     #print(DnaUtils.readIUPACFile(sys.argv[1]))
     # s fait du sort que le code sor
     #iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
@@ -198,7 +243,7 @@ if __name__ == '__main__':
     #DnaUtils.splitMarker(mapOligos, sys.argv[3], sys.argv[4])
     
     #04/04/2016
-    generatePlot()
-    fastq = FastqSequence.readFasqSequenceHeader("@MISEQ3:7:000000000-MERGE3:1:1101:14204:1480 1:N:0:GTCTAC")
-    fastq.test()
+    #generatePlot()
+    #fastq = FastqSequence.readFasqSequenceHeader("@MISEQ3:7:000000000-MERGE3:1:1101:14204:1480 1:N:0:GTCTAC")
+    #fastq.test()
     
