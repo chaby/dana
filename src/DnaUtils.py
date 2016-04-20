@@ -1,6 +1,8 @@
 # coding: utf8
+import logging
 import os
 import os.path
+import sys
 
 def complementDnaSequence(sequence):
     complement = ""
@@ -110,8 +112,10 @@ def getWellName(string):
     lastIndexOfSlash = string.rfind("/")
     if lastIndexOfSlash == -1:
         lastIndexOfSlash = 0
+    else:
+        lastIndexOfSlash += 1
     firstIndexOfUnderscore = string.find("_", lastIndexOfSlash)
-    return string[lastIndexOfSlash + 1:firstIndexOfUnderscore]
+    return string[lastIndexOfSlash:firstIndexOfUnderscore]
     
 def splitMarker(markerMap, outputDirectory, fileName):
     wellFileName = getWellName(fileName)
@@ -135,6 +139,40 @@ def splitMarker(markerMap, outputDirectory, fileName):
                         f.write(line + os.linesep)
                         f.close()
         fastaFile.close()
+        
+
+def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
+    logger = logging.getLogger()
+    wellFileName = getWellName(fileName)
+    #logger.debug("fileName : " + fileName)
+    logger.debug("wellFileName : " + wellFileName)
+    
+    for directory in markerMap.keys():
+        if not os.path.exists(os.path.join(outputDirectory,directory)):
+            os.makedirs(os.path.join(outputDirectory,directory))
+        directoryName = directory
+        amorceLengthFile = os.path.join(outputDirectory,directoryName + ".length.csv")
+        
+        if not os.path.exists(amorceLengthFile):
+            f = open(amorceLengthFile, "w")
+            f.close()
+        #fastaFile = open(fileName, "r")
+        for elm in markerMap[directory]:
+            #logger.debug("elm : " + elm)
+            #logger.debug("    : " + fastqSequence.sequence)
+            index = fastqSequence.sequence.find(elm)
+            #logger.debug("index : " + str(index))
+            if index != -1 and index < 50:
+                f = open(os.path.join(outputDirectory,directory,wellFileName) + ".fasta", "a")
+                logger.debug(os.path.join(outputDirectory,directory,wellFileName) + ".fasta")
+                f.write(fastqSequence.getLineHeader() + os.linesep)
+                f.write(fastqSequence.sequence + os.linesep)
+                f.close()
+                f = open(amorceLengthFile, "a")
+                f.write(wellFileName + "\t" + fastqSequence.getLineHeader() + "\t" + str(len(fastqSequence.sequence)) + "\n")
+                f.close()
+        #fastaFile.close()
+    #sys.exit(1)
 
 # TODO : que faire si on ne trouve pas la sequence marker et pour reverse
 def readmarker(markerFile, forwardMarkerMap, reverseMarkerMap, markerName, trace=True):

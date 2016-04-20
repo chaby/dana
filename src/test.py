@@ -211,6 +211,7 @@ def generatePlot():
         
     DnaUtils.mapToCsv(rAll, rAllOutputFileName)
     DnaUtils.mapToCsv(fAll, fAllOutputFileName)
+
     
 def testApplyThreshold():
     if len(sys.argv) -1 != 2:
@@ -220,15 +221,66 @@ def testApplyThreshold():
             print("[" + str(i) + "] " + sys.argv[i])
         sys.exit(1)
     testQualityThreshold(sys.argv[1], int(sys.argv[2]))
+
+
+def checkArgumentMarkerReducer():
+    if len(sys.argv) -1 != 4:
+        print(sys.argv[0] + " [IUPACFile] [OligosFile] [output directory] [fastq file]")
+        for i in range(1, len(sys.argv)):
+            print("[" + str(i) + "] " + sys.argv[i])
+        sys.exit(1)
+    
+
+def readSingleFastQFile(fileName, threshold, logFileName, mapOligos, outputDir):
+    f = open(fileName, "r")
+    log = open(logFileName, "w")
+    
+    lineNumber = 0
+    lastHeaderLineNumber    = 0
+    lastSeparatorLineNumber = 0
+    sequences  = []
+    fastqSequence = None
+    
+    for line in f:
+        line = line[:-1]
+        if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
+            if fastqSequence != None:
+                #tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
+                fastqSequence.applyDrasticThreshold(threshold)
+                DnaUtils.splitMarker1(mapOligos, outputDir, fastqSequence, fileName)
+                
+            fastqSequence = FastqSequence.readFasqSequenceHeader(line)
+            lastHeaderLineNumber = lineNumber
+            
+            logging.debug(line)
+        elif  lastHeaderLineNumber == lineNumber - 1:
+            fastqSequence.setSequence(line)
+        elif line[0] == "+":
+            lastSeparatorLineNumber = lineNumber
+        elif lastSeparatorLineNumber == lineNumber - 1:
+            fastqSequence.setQuality(line)
+            
+        lineNumber += 1
+    #tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
+    fastqSequence.applyDrasticThreshold(threshold)
+    DnaUtils.splitMarker1(mapOligos, outputDir, fastqSequence, fileName)
+    f.close()
+    log.close()
+    
+    
+def newPipeline():
+    checkArgumentMarkerReducer()
+    m = DnaUtils.readIUPACFile(sys.argv[1])
+    mapOligos = DnaUtils.readOligosFile(sys.argv[2], m)
+    readSingleFastQFile(sys.argv[4], 10, "log.txt", mapOligos, sys.argv[3])
     
 if __name__ == '__main__':
     fileConfig('src/logging_config.ini')
     logger = logging.getLogger()
-    #testApplyThreshold()
-    
+    newPipeline()
     #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
-    checkArgument()
-    readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
+    #checkArgument()
+    #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])
     #print(DnaUtils.readIUPACFile(sys.argv[1]))
     # s fait du sort que le code sor
     #iupacMap = DnaUtils.readIUPACFile(sys.argv[1])
