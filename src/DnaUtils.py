@@ -158,19 +158,24 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
             f.close()
         #fastaFile = open(fileName, "r")
         for elm in markerMap[directory]:
-            #logger.debug("elm : " + elm)
-            #logger.debug("    : " + fastqSequence.sequence)
+            logger.debug("elm : " + elm)
+            logger.debug("seq : " + fastqSequence.sequence)
+            if fastqSequenceisReverse():
+                index = fastqSequence.sequence.rfind(elm)
             index = fastqSequence.sequence.find(elm)
-            #logger.debug("index : " + str(index))
+            logger.debug("index : " + str(index))
             if index != -1 and index < 50:
                 f = open(os.path.join(outputDirectory,directory,wellFileName) + ".fasta", "a")
                 logger.debug(os.path.join(outputDirectory,directory,wellFileName) + ".fasta")
                 f.write(fastqSequence.getLineHeader() + os.linesep)
+                # on supprime l'amorce de la sequence AC : 21/04/2016
+                fastqSequence.sequence = fastqSequence.sequence[len(elm):]
                 f.write(fastqSequence.sequence + os.linesep)
                 f.close()
                 f = open(amorceLengthFile, "a")
                 f.write(wellFileName + "\t" + fastqSequence.getLineHeader() + "\t" + str(len(fastqSequence.sequence)) + "\n")
                 f.close()
+        sys.exit(1)
         #fastaFile.close()
     #sys.exit(1)
 

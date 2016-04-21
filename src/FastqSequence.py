@@ -72,7 +72,9 @@ class FastqSequence(object):
             self.sequence = value
         else:
             self.sequence = DnaUtils.complementAndReverseDnaSequence(value)
-            
+    def isReverse(self):
+        return self.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT
+        
     def applyDrasticThreshold(self, threshold):
         try:
             if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
