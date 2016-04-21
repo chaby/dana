@@ -67,33 +67,37 @@ class FastqSequence(object):
         else:
             self.quality = value
         
-    def setSequence(self, value):
-        if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+    def setSequence(self, value, forced=False):
+        if forced:
             self.sequence = value
         else:
-            self.sequence = DnaUtils.complementAndReverseDnaSequence(value)
+            if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
+                self.sequence = value
+            else:
+                self.sequence = DnaUtils.complementAndReverseDnaSequence(value)
+        self.logger.debug("self.sequence : " + self.sequence)
+                
     def isReverse(self):
         return self.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT
         
     def applyDrasticThreshold(self, threshold):
         try:
             if self.readDirection == FastqSequence.READ_DIRECTION_LEFT_TO_RIGHT:
-                # index = self.quality.rindex(threshold)
+                
                 index = len(self.sequence) - 1
                 while index >=0 and self.quality[index] <= threshold:
                     index -= 1
                 index += 1
-                # print("applyDrasticThreshold index : " + str(index))
+                
                 self.sequence = self.sequence[:index]
                 del self.quality[index:]
             elif self.readDirection == FastqSequence.READ_DIRECTION_RIGHT_TO_LEFT:
                 index = 0
                 while index < len(self.quality) and self.quality[index] <= threshold:
                     index += 1
-                # print(self.sequence)
-                # print("applyDrasticThreshold reverse index : " + str(index))
+                                
                 self.sequence = self.sequence[index:]
-                # print(self.sequence)
+                self.logger.debug("[applyDrasticThreshold] REVERSE delete from 0 to " + str(index))
                 del self.quality[:index]
                 
         except ValueError:

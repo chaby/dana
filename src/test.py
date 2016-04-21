@@ -246,7 +246,10 @@ def readSingleFastQFile(fileName, threshold, logFileName, mapOligos, outputDir):
         if line[0] == "@" and lastSeparatorLineNumber != lineNumber - 1:
             if fastqSequence != None:
                 #tryToFusion(fastqSequence, reverseFileName, threshold, log, seqOutput)
+                logger.debug("before threshold " + fastqSequence.sequence)
                 fastqSequence.applyDrasticThreshold(threshold)
+                logger.debug("after threshold " + fastqSequence.sequence)
+                logger.debug("after threshold " + DnaUtils.complementAndReverseDnaSequence(fastqSequence.sequence))
                 DnaUtils.splitMarker1(mapOligos, outputDir, fastqSequence, fileName)
                 
             fastqSequence = FastqSequence.readFasqSequenceHeader(line)
@@ -254,6 +257,7 @@ def readSingleFastQFile(fileName, threshold, logFileName, mapOligos, outputDir):
             
             logging.debug(line)
         elif  lastHeaderLineNumber == lineNumber - 1:
+            logging.debug("seq in file : " + line)
             fastqSequence.setSequence(line)
         elif line[0] == "+":
             lastSeparatorLineNumber = lineNumber
@@ -272,6 +276,10 @@ def newPipeline():
     checkArgumentMarkerReducer()
     m = DnaUtils.readIUPACFile(sys.argv[1])
     mapOligos = DnaUtils.readOligosFile(sys.argv[2], m)
+    # for k in mapOligos:
+    #     for e in mapOligos[k]:
+    #         print(e)
+    # sys.exit(1)
     readSingleFastQFile(sys.argv[4], 10, "log.txt", mapOligos, sys.argv[3])
     
 if __name__ == '__main__':

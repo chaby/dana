@@ -146,6 +146,10 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
     wellFileName = getWellName(fileName)
     #logger.debug("fileName : " + fileName)
     logger.debug("wellFileName : " + wellFileName)
+    dnaSeq = fastqSequence.sequence
+    if fastqSequence.isReverse():
+        dnaSeq = complementAndReverseDnaSequence(fastqSequence.sequence)
+    logger.debug("isReverse : " + str(fastqSequence.isReverse()))
     
     for directory in markerMap.keys():
         if not os.path.exists(os.path.join(outputDirectory,directory)):
@@ -159,11 +163,14 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
         #fastaFile = open(fileName, "r")
         for elm in markerMap[directory]:
             logger.debug("elm : " + elm)
-            logger.debug("seq : " + fastqSequence.sequence)
-            if fastqSequenceisReverse():
-                index = fastqSequence.sequence.rfind(elm)
-            index = fastqSequence.sequence.find(elm)
+            logger.debug("seq : " + dnaSeq)
+#            if elm == "
+            if fastqSequence.isReverse():
+                index = dnaSeq.find(elm)
+            else:
+                index = dnaSeq.find(elm)
             logger.debug("index : " + str(index))
+            
             if index != -1 and index < 50:
                 f = open(os.path.join(outputDirectory,directory,wellFileName) + ".fasta", "a")
                 logger.debug(os.path.join(outputDirectory,directory,wellFileName) + ".fasta")
@@ -175,9 +182,9 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
                 f = open(amorceLengthFile, "a")
                 f.write(wellFileName + "\t" + fastqSequence.getLineHeader() + "\t" + str(len(fastqSequence.sequence)) + "\n")
                 f.close()
-        sys.exit(1)
-        #fastaFile.close()
-    #sys.exit(1)
+    # sys.exit(1)
+    # fastaFile.close()
+    # sys.exit(1)
 
 # TODO : que faire si on ne trouve pas la sequence marker et pour reverse
 def readmarker(markerFile, forwardMarkerMap, reverseMarkerMap, markerName, trace=True):
