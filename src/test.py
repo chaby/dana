@@ -282,10 +282,270 @@ def newPipeline():
     # sys.exit(1)
     readSingleFastQFile(sys.argv[4], 10, "log.txt", mapOligos, sys.argv[3])
     
+def readMultipleThesholdWell(fileName):
+    f = open(fileName, "r")
+    m = {}
+    g = {}
+    forward  = 0
+    reverse  = 1
+    lineNumber = 0
+    currentWellName = None
+    for line in f:
+        lineNumber += 1
+        line = line[:-1]
+        print(line)
+        a = line.split("\t")
+        markerName = a[0]
+        direction  = a[1]
+        theshold   = int(a[2])
+        if not markerName in m:
+            m[markerName] = []
+            m[markerName].append(-1)
+            m[markerName].append(-1)
+            
+        if direction == "forward":
+            m[markerName][forward] = theshold
+        elif direction == "reverse":
+            m[markerName][reverse] = theshold
+            newName = markerName + "_" + str(m[markerName][forward]) + "_" + str(m[markerName][reverse])
+            if not markerName in g:
+                g[markerName] = {}
+            g[markerName][newName] = m[markerName][:]
+        else:
+            logger.error("direction : \"" + "\" invalid valud in file : " + fileName + " at line [" + str(lineNumber) + "]")
+    f.close()
+    return g
+    
+def readThesholdWell(fileName):
+    f = open(fileName, "r")
+    m = {}
+    forward  = 0
+    reverse  = 1
+    lineNumber = 0
+    for line in f:
+        lineNumber += 1
+        line = line[:-1]
+        print(line)
+        a = line.split("\t")
+        markerName = a[0]
+        direction  = a[1]
+        theshold   = int(a[2])
+        if not markerName in m:
+            m[markerName] = []
+            m[markerName].append(-1)
+            m[markerName].append(-1)
+            
+        if direction == "forward":
+            m[markerName][forward] = theshold
+        elif direction == "reverse":
+            m[markerName][reverse] = theshold
+        else:
+            logger.error("direction : \"" + "\" invalid valud in file : " + fileName + " at line [" + str(lineNumber) + "]")
+    f.close()
+    return m
+
+def checkArgumentEcorAndOlon():
+    if len(sys.argv) -1 != 4:
+        print(sys.argv[0] + " [well forward] [well reverse] [threshold well] [well output]")
+        for i in range(1, len(sys.argv)):
+            print("[" + str(i) + "] " + sys.argv[i])
+        sys.exit(1)
+        
+def searchCorrespondingReverseSeq(header, reverseFilehandler, wellThresholds):
+    reverseFilehandler.seek(0)
+    
+    reverseHeader = header.replace(" 1:", " 2:")
+    lastColon     = reverseHeader.rfind(":")
+    reverseHeader = reverseHeader[:lastColon]
+    
+    #logger.debug("[searchCorrespondingReverseSeq] reverseHeader : " + reverseHeader)
+    header = None
+    data   = ""
+    for line in reverseFilehandler:
+        line = line[:-1]
+        if len(line) > 0 and line[0] == "@":
+            if line.find(reverseHeader) == 0:
+                header = line
+            # last header was the good one
+            # i hava fish to read fasta
+            elif header != None:
+                break
+            else:
+                data = ""
+        else:
+            data += line
+    
+    return (header, data)
+       
+            
+def cutFusionAndMerge(headerF, dataF, headerR, dataR, wellThresholds, log, outputFile):
+    logger.debug("[cutFusionAndMerge] " + headerF + ", " + headerR + ", " + str(wellThresholds))
+    
+    forward  = 0
+    reverse  = 1
+    
+    dataF = dataF[0:wellThresholds[forward]]
+    #a = "ATAACGCTGTTATCCCTGCGGTAACTTGTTCTTTTGATCACTGTAAGTGGATCACACCTTCATTTTTATGATTTAAGAAAAACAATTCTTTTATTTTAGGTTAATATAACCATATAGTAGCGGAGGATTTTCTTTCTCCGGGATTGCCCCAATCAAAGCTTGTTTCAATTTGCCATGCTCTAGGCCTACTATTTCTATTATATTAGTTAGGGCTAATAGTAAATAACAATTAAAATTCAACTACAGCTCG"
+    #dataR = DnaUtils.complementAndReverseDnaSequence(dataR[0:wellThresholds[reverse]])
+    cdataR = DnaUtils.complementAndReverseDnaSequence(dataR)
+    cdataR = cdataR[:wellThresholds[reverse]]
+    #cdataR = DnaUtils.complementAndReverseDnaSequence(cdataR)
+    #data   = merge(dataF, cdataR)
+    # print(dataF)
+    #print(DnaUtils.complementAndReverseDnaSequence(cdataR))
+    
+    fastqSequenceForward = FastqSequence.createFasqSequenceHeader(headerF)
+    fastqSequenceForward.setSequence(dataF, True)
+    fastqSequenceForward.quality = None
+    
+    fastqSequenceReverse = FastqSequence.createFasqSequenceHeader(headerR)
+    fastqSequenceReverse.setSequence(cdataR)
+    fastqSequenceReverse.quality = None
+    
+    newFastQ = FastqSequence.matchFastqSequence(fastqSequenceForward, fastqSequenceReverse)
+    
+    logging.debug(newFastQ.getLineHeader() + "\t" + str(newFastQ.typeFusion))
+    if newFastQ.typeFusion == newFastQ.TYPE_FUSION_OK:
+        log.write("Merge " + fastqSequenceForward.getLineHeader() + " with " + fastqSequenceReverse.getLineHeader() + "\n")
+    elif newFastQ.typeFusion == newFastQ.TYPE_FUSION_NO_MATCH:
+        log.write("Forced merge " + fastqSequenceForward.getLineHeader() + " with " + fastqSequenceReverse.getLineHeader() + "\n")
+    elif newFastQ.typeFusion == newFastQ.TYPE_FUSION_PARTIAL:
+        log.write("Partial merge " + fastqSequenceForward.getLineHeader() + " with " + fastqSequenceReverse.getLineHeader() + "\n")
+    else:
+        log.write("Can't merge " + fastqSequenceForward.getLineHeader() + " with " + fastqSequenceReverse.getLineHeader() + "\n")
+        
+    #outputFile.write(">" + newFastQ.getLineHeader() + "\n")
+    #outputFile.write(newFastQ.sequence + "\n")
+    #sys.exit(1)
+    return newFastQ
+    
+    
+def tryToFusionMarkerFile(forwardMarkerFile, reverseMarkerFile, wellThresholds, log, logDoublon, outputFile, fusionMap):
+    logger.debug("[tryToFusionMarkerFile] " + forwardMarkerFile + ", " + reverseMarkerFile + ", " + str(wellThresholds))
+    f = open(forwardMarkerFile, "r")
+    r = open(reverseMarkerFile, "r")
+    
+    headerF = None
+    dataF   = ""
+    headerR = None
+    dataR   = None
+        
+    for line in f:
+        line = line[:-1]
+        if len(line) > 0 and line[0] == "@":
+            if headerF == None:
+                headerF = line
+            elif line != headerF:
+                (headerR, dataR) = searchCorrespondingReverseSeq(headerF, r, wellThresholds)
+                #if headerR == None:
+                #    logger.error("[searchCorrespondingReverseSeq] " + headerF + " not found in " + reverseMarkerFile)
+                #else:
+                if headerR != None:
+                    fastq = cutFusionAndMerge(headerF, dataF, headerR, dataR, wellThresholds, log, outputFile)
+                    appendToDoublonMap(fastq, fusionMap)
+                        
+                headerF = line
+                dataF   = ""
+        else:
+            dataF += line
+            
+    (headerR, dataR) = searchCorrespondingReverseSeq(headerF, r, wellThresholds)
+    if headerR == None:
+        logger.error("[searchCorrespondingReverseSeq] END " + headerF + " not found in " + reverseMarkerFile)
+    else:
+        fastq = cutFusionAndMerge(headerF, dataF, headerR, dataR, wellThresholds, log, outputFile)
+    appendToDoublonMap(fastq, fusionMap)
+    
+    r.close()
+    f.close()
+    
+def appendToDoublonMap(fastq, fusionMap):
+    if fastq.sequence in fusionMap:
+        fusionMap[fastq.sequence][1] = fusionMap[fastq.sequence][1] +1
+        fusionMap[fastq.sequence][2].append(fastq.getLineHeader())
+    else:
+        fusionMap[fastq.sequence] = []
+        fusionMap[fastq.sequence].append(fastq)
+        fusionMap[fastq.sequence].append(1)
+        emptyDoublon = []
+        fusionMap[fastq.sequence].append(emptyDoublon)
+    
+        
+def tryToFusionWell(wellForward, wellReverse, wellThresholds, outputDir):
+    logger.info("[tryToFusionWell] " + wellForward + ", " + wellReverse + ", " + str(wellThresholds))
+    for root, dirs, files in os.walk(wellForward):
+        for f in files:
+            logger.debug("[tryToFusionWell] outputFile : " + os.path.join(outputDir, f))
+            logMergeFileName   = os.path.join(outputDir, f[:f.rfind(".")] + ".merge.log")
+            logDoublonFileName = os.path.join(outputDir, f[:f.rfind(".")] + ".doublon.log")
+            logCountFileName = os.path.join(outputDir, f[:f.rfind(".")] + ".count.log")
+            m = {}
+            logger.debug("[tryToFusionWell] logFile    : " + logMergeFileName)
+            of = open(os.path.join(outputDir, f), "w")
+            
+            logMerge = open(logMergeFileName, "w")
+            logDoublon = open(logDoublonFileName, "w")
+            logCount = open(logCountFileName, "w")
+            # logger.debug("[tryToFusionWell] file : " + f + " " + os.path.join(wellReverse, f) + " : " + str(os.path.exists(os.path.join(wellReverse, f))))
+            if (os.path.exists(os.path.join(wellReverse, f))):
+                tryToFusionMarkerFile(os.path.join(wellForward, f), os.path.join(wellReverse, f), wellThresholds, logMerge, logDoublon, of, m)
+            
+            for k in m:
+                a = m[k]
+                fastq = a[0]
+                count = a[1]
+                elms  = a[2]
+                if count == 1:
+                    logDoublon.write(fastq.getLineHeader() + "\t1\tdelete\n");
+                elif count > 1:
+                    of.write(">" + fastq.getLineHeader()+"\n")
+                    of.write(fastq.sequence + "\n")
+                    logCount.write(fastq.getLineHeader() + "\t"+str(count)+"\tkeep\n");
+                    for elm in elms:
+                        logDoublon.write(elm + "\t" + str(count) + "\tidentical\t" + fastq.getLineHeader() + "\n")
+            
+            logCount.close()
+            logDoublon.close()
+            logMerge.close()
+            of.close()
+    
+    
+def testEcorAndOlon():
+    checkArgumentEcorAndOlon()
+    wellForwardDirectory = sys.argv[1]
+    wellReverseDirectory = sys.argv[2]
+    #wellThresholdMap     = readThesholdWell(sys.argv[3])
+    wellThresholdMap     = readMultipleThesholdWell(sys.argv[3])
+    weelOutput           = sys.argv[4]
+    
+    #print(wellThresholdMap)
+    for root, dirs, files in os.walk(wellForwardDirectory):
+        for directory in dirs:
+            if directory in wellThresholdMap:
+                logger.debug("diractory in " + wellForwardDirectory + " : " + directory)
+                if not os.path.exists(os.path.join(weelOutput, directory)):
+                    os.makedirs(os.path.join(weelOutput, directory))
+                    
+                if (os.path.exists(os.path.join(wellReverseDirectory, directory))):
+                    logger.debug("reverse diractory in : " + os.path.join(wellReverseDirectory, directory))
+                    if len(wellThresholdMap[directory]) == 1:
+                        wellName, wellValues = wellThresholdMap[directory].popitem()
+                        
+                        tryToFusionWell(os.path.join(wellForwardDirectory, directory), os.path.join(wellReverseDirectory, directory), wellValues, os.path.join(weelOutput, directory))
+                    else:
+                        for wells in wellThresholdMap[directory]:
+                            if not os.path.exists(os.path.join(weelOutput, directory, wells)):
+                                os.makedirs(os.path.join(weelOutput, directory, wells))
+                            tryToFusionWell(os.path.join(wellForwardDirectory, directory), os.path.join(wellReverseDirectory, directory), wellThresholdMap[directory][wells], os.path.join(weelOutput, directory, wells))
+    
 if __name__ == '__main__':
     fileConfig('src/logging_config.ini')
     logger = logging.getLogger()
-    newPipeline()
+    #newPipeline()
+    testEcorAndOlon()
+    
+    #print(DnaUtils.complementAndReverseDnaSequence("CGAGCTGTATCTGAATTTTAATTGTTATTTACTATTAGCCCTAACTAATATGATAGAAATAGTAGGCCTAAAGCATGGCAAATTGAAACAAGCTTTGATTGGGGCAATCCCGGAGAAAGAAAATCCTCCGCTACTATATGGTTATATTAACCTAAAATAAAAGAATTGTTTTTCTTAAATCATAAAAATGAAGGTGTGATCCACTTACAGTGATCAAAAGAACAAGTT"))
+    
     #logging.basicConfig(filename='example.log',format='%(asctime)s:%(levelname)s:%(message)s', level=logging.CRITICAL)
     #checkArgument()
     #readFastQFile(sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5])

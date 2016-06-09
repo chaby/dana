@@ -18,7 +18,6 @@ def complementDnaSequence(sequence):
         else:
             complement += l
     return complement
-    
 
     
 def complementAndReverseDnaSequence(sequence):
@@ -165,10 +164,7 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
             logger.debug("elm : " + elm)
             logger.debug("seq : " + dnaSeq)
 #            if elm == "
-            if fastqSequence.isReverse():
-                index = dnaSeq.find(elm)
-            else:
-                index = dnaSeq.find(elm)
+            index = dnaSeq.find(elm)
             logger.debug("index : " + str(index))
             
             if index != -1 and index < 50:
@@ -176,8 +172,11 @@ def splitMarker1(markerMap, outputDirectory, fastqSequence, fileName):
                 logger.debug(os.path.join(outputDirectory,directory,wellFileName) + ".fasta")
                 f.write(fastqSequence.getLineHeader() + os.linesep)
                 # on supprime l'amorce de la sequence AC : 21/04/2016
-                fastqSequence.sequence = fastqSequence.sequence[len(elm):]
-                f.write(fastqSequence.sequence + os.linesep)
+                dnaSeq = dnaSeq[len(elm):]
+                if fastqSequence.isReverse():
+                    f.write(complementAndReverseDnaSequence(dnaSeq) + os.linesep)
+                else:
+                    f.write(dnaSeq + os.linesep)
                 f.close()
                 f = open(amorceLengthFile, "a")
                 f.write(wellFileName + "\t" + fastqSequence.getLineHeader() + "\t" + str(len(fastqSequence.sequence)) + "\n")

@@ -195,11 +195,14 @@ def partialFusion(fastq1, reverseFastq, size):
     for i in range(0,size):
         qualityXXXX.append(0)
         
-    qualityList = []
-    qualityList.extend(fastq1.quality)
-    qualityList.extend(qualityXXXX)
-    qualityList.extend(reverseFastq.quality[size:])
-    fastqFusion.setQuality(qualityList)
+    if fastq1.quality != None:
+        qualityList = []
+        qualityList.extend(fastq1.quality)
+        qualityList.extend(qualityXXXX)
+        qualityList.extend(reverseFastq.quality[size:])
+        fastqFusion.setQuality(qualityList)
+    else:
+        fastqFusion.quality = None
     fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_PARTIAL
     return fastqFusion
     
@@ -207,16 +210,19 @@ def noMatchFusion(fastq1, reverseFastq):
     fastqFusion = FastqSequence(fastq1.idInstrumentName, fastq1.runId, fastq1.flowcellId, fastq1.flowcellLane, fastq1.tileNumber, fastq1.xCoordinate, fastq1.yCoordinate, fastq1.readDirection, fastq1.readFiltered, fastq1.controlBit, fastq1.sequenceIndex, None, None)
     sequence = fastq1.sequence + "XXXX" + reverseFastq.sequence
     fastqFusion.setSequence(sequence)
-    qualityXXXX  = []
-    qualityXXXX.append(0)
-    qualityXXXX.append(0)
-    qualityXXXX.append(0)
-    qualityXXXX.append(0)
-    qualityList = []
-    qualityList.extend(fastq1.quality)
-    qualityList.extend(qualityXXXX)
-    qualityList.extend(reverseFastq.quality)
-    fastqFusion.setQuality(qualityList)
+    if fastq1.quality != None:
+        qualityXXXX  = []
+        qualityXXXX.append(0)
+        qualityXXXX.append(0)
+        qualityXXXX.append(0)
+        qualityXXXX.append(0)
+        qualityList = []
+        qualityList.extend(fastq1.quality)
+        qualityList.extend(qualityXXXX)
+        qualityList.extend(reverseFastq.quality)
+        fastqFusion.setQuality(qualityList)
+    else:
+        fastqFusion.quality = None
     fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_NO_MATCH
     return fastqFusion
 
@@ -228,10 +234,13 @@ def fusion(fastq1, reverseFastq):
     
     fastqFusion.setSequence(sequence)
     
-    qualityList = []
-    qualityList.extend(fastq1.quality[:found])
-    qualityList.extend(reverseFastq.quality)
-    fastqFusion.setQuality(qualityList)
+    if fastq1.quality != None:
+        qualityList = []
+        qualityList.extend(fastq1.quality[:found])
+        qualityList.extend(reverseFastq.quality)
+        fastqFusion.setQuality(qualityList)
+    else:
+        fastqFusion.quality = None
     fastqFusion.typeFusion = FastqSequence.TYPE_FUSION_OK
     return fastqFusion
 
@@ -247,8 +256,8 @@ def matchFastqSequence(fastq1, fastq2):
         reverseFastq = fastq1
         classicFastq = fastq2
         
-    logging.debug(classicFastq)
-    logging.debug(reverseFastq)
+    logging.debug(classicFastq.sequence)
+    logging.debug(reverseFastq.sequence)
     
     numberChar = 10
     lastReverse10 = reverseFastq.sequence[0:numberChar]
@@ -266,6 +275,31 @@ def matchFastqSequence(fastq1, fastq2):
                 resteAVerifier = len(classicFastq.sequence) - found - numberChar
                 logging.debug("resteAVerifier " + str(resteAVerifier) + " caracteres")
                 logging.debug(" ->" + classicFastq.sequence[found + 10:])
+                allMatch = True
+                mF = ""
+                mR = ""
+                for k in range(0, resteAVerifier):
+                    if resteAVerifier < len(reverseFastq.sequence):
+                        mF += classicFastq.sequence[found + k]
+                        mR += reverseFastq.sequence[k]
+                        if reverseFastq.sequence[k] != classicFastq.sequence[found + k]:
+                            allMatch = False
+                            break
+                
+                #print(classicFastq.sequence)
+                #k = 0
+                #s = ""
+                #for k in range(0, found):
+                #    s += "#"
+                #print(s + reverseFastq.sequence)
+                
+                #print(mF)
+                #print(mR)
+                if not allMatch:
+                    return noMatchFusion(classicFastq, reverseFastq)
+                
+                        
+                
                 return partialFusion(classicFastq, reverseFastq, numberChar)
                 break
                 
@@ -295,6 +329,24 @@ def qualityScoretoIntArray(value):
     for l in value:
         res.append(FastqSequence.QUALITY_SCORE.find(l))
     return res
+    
+def createFasqSequenceHeader(line):
+    #print(line)
+    s = line.split(":")
+    idInstrumentName = s[0][1:]
+    runId            = s[1]
+    flowcellId       = s[2]
+    flowcellLane     = s[3]
+    tileNumber       = s[4]
+    xCoordinate      = s[5]
+    ss = s[6].split(" ")
+    yCoordinate      = ss[0]
+    readDirection    = ss[1]
+    readFiltered     = s[7]
+    controlBit       = s[8]
+    sequenceIndex    = s[9]
+    fastqSequence = FastqSequence(idInstrumentName, runId, flowcellId, flowcellLane, tileNumber, xCoordinate, yCoordinate, readDirection, readFiltered, controlBit, sequenceIndex, None, None)
+    return fastqSequence
     
 def readFasqSequenceHeader(line):
     #print(line)
